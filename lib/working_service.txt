@@ -1,0 +1,308 @@
+// import 'dart:async';
+// import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:firebase_auth/firebase_auth.dart';
+// import 'package:flutter/material.dart';
+// import 'package:geoflutterfire2/geoflutterfire2.dart';
+// import 'package:nearme/global_location.dart';
+// import 'package:nearme/working_create_current.dart';
+// import 'package:nearme/working_profile.dart';
+// import 'package:nearme/working_show_map.dart';
+//
+// class WorkingServices extends StatefulWidget {
+//   final category;
+//
+//   const WorkingServices({Key? key, required this.category}) : super(key: key);  // Unnamed constructor
+//
+//   const WorkingServices.WorkingServicesShow({Key? key, required this.category}) : super(key: key);
+//
+//   @override
+//   State<WorkingServices> createState() => _WorkingServicesState();
+// }
+//
+// class _WorkingServicesState extends State<WorkingServices> {
+//   String? uid;
+//
+//   void getCurrentUserUid() {
+//     User? user = FirebaseAuth.instance.currentUser;
+//     if (user != null) {
+//       setState(() {
+//         uid = user.uid;
+//       });
+//     } else {
+//       setState(() {
+//         uid = null;
+//       });
+//     }
+//   }
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     getCurrentUserUid();
+//   }
+//
+//   double radius = 0.0;
+//   Timer? _timer;
+//   bool _longPressCancled = false;
+//
+//   void _increaseRadius() {
+//     setState(() {
+//       radius++;
+//     });
+//   }
+//
+//   void _decreaseRadius() {
+//     setState(() {
+//       radius--;
+//     });
+//   }
+//
+//   void _cancleIncrement() {
+//     if (_timer != null) {
+//       _timer!.cancel();
+//     }
+//     _longPressCancled = true;
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     final firestore = FirebaseFirestore.instance;
+//     final geo = GeoFlutterFire();
+//     GeoFirePoint center = geo.point(latitude: globalLatitude!, longitude: globalLongitude!);
+//
+//     var collectionReference = firestore.collection('workers');
+//     String field = 'position';
+//
+//     Stream<List<DocumentSnapshot>> streamOfNearby = geo
+//         .collection(collectionRef: collectionReference)
+//         .within(center: center, radius: radius, field: field, strictMode: true);
+//
+//     return Scaffold(
+//       floatingActionButton: Column(
+//         mainAxisAlignment: MainAxisAlignment.end,
+//         children: [
+//           FloatingActionButton(
+//             heroTag: 'reset_radius',
+//             backgroundColor: Colors.green[50],
+//             onPressed: () {
+//               setState(() {
+//                 radius = 1;
+//                 _cancleIncrement();
+//               });
+//             },
+//             child: Text(radius.toStringAsFixed(1)),
+//           ),
+//           SizedBox(height: 15),
+//           GestureDetector(
+//             onLongPressEnd: (details) => _cancleIncrement(),
+//             onLongPress: () {
+//               _longPressCancled = false;
+//               Future.delayed(Duration(milliseconds: 0), () {
+//                 if (!_longPressCancled) {
+//                   _timer = Timer.periodic(Duration(milliseconds: 100), (timer) {
+//                     _increaseRadius();
+//                   });
+//                 }
+//               });
+//             },
+//             child: FloatingActionButton(
+//               heroTag: 'increase_radius',
+//               backgroundColor: Colors.green[50],
+//               onPressed: _increaseRadius,
+//               child: Icon(Icons.add),
+//             ),
+//           ),
+//           SizedBox(height: 12),
+//           GestureDetector(
+//             onLongPressEnd: (details) => _cancleIncrement(),
+//             onLongPress: () {
+//               _longPressCancled = false;
+//               Future.delayed(Duration(milliseconds: 300), () {
+//                 if (!_longPressCancled) {
+//                   _timer = Timer.periodic(Duration(milliseconds: 150), (timer) {
+//                     _decreaseRadius();
+//                   });
+//                 }
+//               });
+//             },
+//             child: FloatingActionButton(
+//               heroTag: 'decrease_radius',
+//               backgroundColor: Colors.green[50],
+//               onPressed: _decreaseRadius,
+//               child: Icon(Icons.remove),
+//             ),
+//           ),
+//         ],
+//       ),
+//       appBar: AppBar(
+//         title: Text(widget.category.title),
+//         actions: [
+//           IconButton(
+//             onPressed: () {
+//               Navigator.push(
+//                   context,
+//                   MaterialPageRoute(
+//                       builder: (context) =>
+//                           WorkingCreateCurrent(CollectionREf: widget.category.title)));
+//             },
+//             icon: Icon(Icons.add, size: 30),
+//           ),
+//           IconButton(
+//               onPressed: () {
+//                 Navigator.push(context, MaterialPageRoute(builder: (context) => WorkingShowMap(collTitle: widget.category.title),));
+//               },
+//               icon: const Icon(
+//                 Icons.location_searching,
+//                 fill: 0.0,
+//               )),
+//         ],
+//       ),
+//       body: StreamBuilder<List<DocumentSnapshot>>(
+//         stream: streamOfNearby,
+//         builder: (context, snapshot) {
+//           if (!snapshot.hasData || snapshot.data == null) {
+//             return Center(child: CircularProgressIndicator());
+//           }
+//           final nearbyDocuments = snapshot.data!;
+//           final matchingDocuments = nearbyDocuments
+//               .where((doc) => doc['category'] == widget.category.title)
+//               .toList();
+//
+//           return ListView.builder(
+//             itemCount: matchingDocuments.length,
+//             itemBuilder: (context, index) {
+//               final data = matchingDocuments[index];
+//               GeoPoint documentLocation = data.get('position')['geopoint'];
+//
+//               return InkWell(
+//                 onTap: () {
+//                   // Navigate to the WorkingProfile screen with the relevant data
+//                   Navigator.push(
+//                     context,
+//                     MaterialPageRoute(
+//                       builder: (context) => WorkingProfile(data:data),
+//                     ),
+//                   );
+//                 },
+//                 child: Card(
+//                   margin: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+//                   elevation: 5,
+//                   shape: RoundedRectangleBorder(
+//                     borderRadius: BorderRadius.circular(15),
+//                   ),
+//                   child: Padding(
+//                     padding: const EdgeInsets.all(12.0),
+//                     child: Column(
+//                       crossAxisAlignment: CrossAxisAlignment.start,
+//                       children: [
+//                         // Name with ellipsis if too long
+//                         Text(
+//                           data.get('name'),
+//                           style: TextStyle(
+//                             fontSize: 22,
+//                             fontWeight: FontWeight.bold,
+//                             color: Colors.black87,
+//                           ),
+//                           overflow: TextOverflow.ellipsis,  // Add ellipsis
+//                           maxLines: 1,  // Ensure it stays on one line
+//                         ),
+//                         SizedBox(height: 8),
+//
+//                         // Location with ellipsis
+//                         Row(
+//                           children: [
+//                             Icon(Icons.location_on, color: Colors.redAccent, size: 20),
+//                             SizedBox(width: 5),
+//                             Expanded(  // Use Expanded to ensure text fits within row
+//                               child: Text(
+//                                 data.get('createdAt'),
+//                                 style: TextStyle(fontSize: 16, color: Colors.black54),
+//                                 overflow: TextOverflow.ellipsis,  // Add ellipsis
+//                                 maxLines: 1,  // Keep it to one line
+//                               ),
+//                             ),
+//                           ],
+//                         ),
+//                         SizedBox(height: 8),
+//
+//                         // Mobile Number with ellipsis
+//                         Row(
+//                           children: [
+//                             Icon(Icons.phone, color: Colors.blueAccent, size: 20),
+//                             SizedBox(width: 5),
+//                             Expanded(
+//                               child: Text(
+//                                 'Mobile: ${data.get('mobileNumber')}',
+//                                 style: TextStyle(fontSize: 16, color: Colors.black54),
+//                                 overflow: TextOverflow.ellipsis,
+//                                 maxLines: 1,
+//                               ),
+//                             ),
+//                           ],
+//                         ),
+//                         SizedBox(height: 8),
+//
+//                         // WhatsApp Number with ellipsis
+//                         Row(
+//                           children: [
+//                             Icon(Icons.whatshot, color: Colors.green, size: 20),
+//                             SizedBox(width: 5),
+//                             Expanded(
+//                               child: Text(
+//                                 'WhatsApp: ${data.get('whatsappNumber')}',
+//                                 style: TextStyle(fontSize: 16, color: Colors.black54),
+//                                 overflow: TextOverflow.ellipsis,
+//                                 maxLines: 1,
+//                               ),
+//                             ),
+//                           ],
+//                         ),
+//                         SizedBox(height: 8),
+//
+//                         // Age with ellipsis
+//                         Row(
+//                           children: [
+//                             Icon(Icons.person, color: Colors.orange, size: 20),
+//                             SizedBox(width: 5),
+//                             Expanded(
+//                               child: Text(
+//                                 'Age: ${data.get('age')}',
+//                                 style: TextStyle(fontSize: 16, color: Colors.black54),
+//                                 overflow: TextOverflow.ellipsis,
+//                                 maxLines: 1,
+//                               ),
+//                             ),
+//                           ],
+//                         ),
+//                         SizedBox(height: 8),
+//
+//                         // Experience with ellipsis
+//                         Row(
+//                           children: [
+//                             Icon(Icons.work, color: Colors.brown, size: 20),
+//                             SizedBox(width: 5),
+//                             Expanded(
+//                               child: Text(
+//                                 'Experience: ${data.get('exp')} years',
+//                                 style: TextStyle(fontSize: 16, color: Colors.black54),
+//                                 overflow: TextOverflow.ellipsis,
+//                                 maxLines: 1,
+//                               ),
+//                             ),
+//                           ],
+//                         ),
+//                       ],
+//                     ),
+//                   ),
+//                 ),
+//               );
+//
+//
+//
+//             },
+//           );
+//         },
+//       ),
+//     );
+//   }
+// }

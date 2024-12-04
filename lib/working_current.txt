@@ -1,0 +1,212 @@
+// import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:firebase_auth/firebase_auth.dart';
+// import 'package:flutter/material.dart';
+// import 'package:geocoding/geocoding.dart';
+// import 'package:geoflutterfire2/geoflutterfire2.dart';
+// import 'package:nearme/global_location.dart';
+// import 'package:intl/intl.dart';
+//
+// class WorkingCreateCurrent extends StatefulWidget {
+//   final String CollectionREf;
+//   const WorkingCreateCurrent({Key? key, required this.CollectionREf}) : super(key: key);
+//
+//   @override
+//   State<WorkingCreateCurrent> createState() => _WorkingCreateCurrentState();
+// }
+//
+// class _WorkingCreateCurrentState extends State<WorkingCreateCurrent> {
+//   String? uid;
+//   void getCurrentUserUid() {
+//     FirebaseAuth auth = FirebaseAuth.instance;
+//     User? user = auth.currentUser;
+//
+//     if (user != null) {
+//       setState(() {
+//         this.uid = user.uid;
+//       });
+//     } else {
+//       setState(() {
+//         this.uid = null;
+//       });
+//     }
+//   }
+//
+//   String createdAt = "Unknown";
+//   final descController = TextEditingController();
+//   final nameController = TextEditingController();
+//   final ageController = TextEditingController();
+//   final experienceController = TextEditingController();
+//   final mobileNumberController = TextEditingController();
+//   final whatsappNumberController = TextEditingController();
+//   final geo = GeoFlutterFire();
+//   final _firestore = FirebaseFirestore.instance;
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     getCurrentUserUid();
+//     createdLocation();
+//   }
+//
+//   Future<void> createdLocation() async {
+//     List<Placemark> placemarks = await placemarkFromCoordinates(globalLatitude!, globalLongitude!);
+//     Placemark placemark = placemarks[0];
+//     setState(() {
+//       createdAt = '${placemark.name},${placemark.street},${placemark.locality}, ${placemark.administrativeArea}, ${placemark.country}';
+//     });
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(title: const Text("Create Service")),
+//       body: SingleChildScrollView(
+//         padding: EdgeInsets.all(16.0),
+//         child: Column(
+//           children: [
+//             TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Provider Name')),
+//             TextField(controller: descController, decoration: const InputDecoration(labelText: 'Description')),
+//             TextField(controller: ageController, decoration: const InputDecoration(labelText: 'Age'), keyboardType: TextInputType.number),
+//             TextField(controller: experienceController, decoration: const InputDecoration(labelText: 'Experience (years)'), keyboardType: TextInputType.number),
+//             TextField(controller: mobileNumberController, decoration: const InputDecoration(labelText: 'Mobile Number'), keyboardType: TextInputType.phone),
+//             TextField(controller: whatsappNumberController, decoration: const InputDecoration(labelText: 'WhatsApp Number'), keyboardType: TextInputType.phone),
+//             ElevatedButton(
+//               onPressed: () async {
+//                 GeoFirePoint myLocation = geo.point(latitude: globalLatitude!, longitude: globalLongitude!);
+//                 DocumentReference newLocationRef = await _firestore.collection('workers').add({
+//                   'position': myLocation.data,
+//                   'description': descController.text,
+//                   'createdOn': DateFormat.yMMMMd().format(DateTime.now()),
+//                   'createdAt': createdAt,
+//                   'createdById': uid.toString(),
+//                   'category': widget.CollectionREf,
+//                   'exp': int.tryParse(experienceController.text) ?? 0,
+//                   'name': nameController.text,
+//                   'age': int.tryParse(ageController.text) ?? 0,
+//                   'mobileNumber': mobileNumberController.text,
+//                   'whatsappNumber': whatsappNumberController.text,
+//                 });
+//                 Navigator.pop(context);
+//               },
+//               child: const Text("Create"),
+//             ),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geoflutterfire2/geoflutterfire2.dart';
+import 'package:intl/intl.dart';
+import 'package:nearme/global_location.dart';
+
+class WorkingCreateCurrent extends StatefulWidget {
+  final String CollectionREf;
+  const WorkingCreateCurrent({Key? key, required this.CollectionREf}) : super(key: key);
+
+  @override
+  State<WorkingCreateCurrent> createState() => _WorkingCreateCurrentState();
+}
+
+class _WorkingCreateCurrentState extends State<WorkingCreateCurrent> {
+  String? uid;
+  final descController = TextEditingController();
+  final nameController = TextEditingController();
+  final ageController = TextEditingController();
+  final experienceController = TextEditingController();
+  final mobileNumberController = TextEditingController();
+  final whatsappNumberController = TextEditingController();
+  final geo = GeoFlutterFire();
+  final _firestore = FirebaseFirestore.instance;
+  String createdAt = "Unknown";
+
+  @override
+  void initState() {
+    super.initState();
+    getCurrentUserUid();
+    createdLocation();
+  }
+
+  void getCurrentUserUid() {
+    FirebaseAuth auth = FirebaseAuth.instance;
+    User? user = auth.currentUser;
+
+    setState(() {
+      uid = user?.uid;
+    });
+  }
+
+  Future<void> createdLocation() async {
+    if (globalLatitude != null && globalLongitude != null) {
+      List<Placemark> placemarks = await placemarkFromCoordinates(globalLatitude!, globalLongitude!);
+      Placemark placemark = placemarks.first;
+      setState(() {
+        createdAt = '${placemark.name}, ${placemark.street}, ${placemark.locality}, ${placemark.administrativeArea}, ${placemark.country}';
+      });
+    }
+  }
+
+  Widget buildTextField({
+    required TextEditingController controller,
+    required String label,
+    TextInputType keyboardType = TextInputType.text,
+    bool isNumber = false,
+  }) {
+    return TextField(
+      controller: controller,
+      decoration: InputDecoration(labelText: label),
+      keyboardType: keyboardType,
+      inputFormatters: isNumber ? [FilteringTextInputFormatter.digitsOnly] : [],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("Create Service")),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            buildTextField(controller: nameController, label: 'Provider Name'),
+            buildTextField(controller: descController, label: 'Description'),
+            buildTextField(controller: ageController, label: 'Age', keyboardType: TextInputType.number, isNumber: true),
+            buildTextField(controller: experienceController, label: 'Experience (years)', keyboardType: TextInputType.number, isNumber: true),
+            buildTextField(controller: mobileNumberController, label: 'Mobile Number', keyboardType: TextInputType.phone),
+            buildTextField(controller: whatsappNumberController, label: 'WhatsApp Number', keyboardType: TextInputType.phone),
+            ElevatedButton(
+              onPressed: () async {
+                if (uid == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User not logged in')));
+                  return;
+                }
+
+                GeoFirePoint myLocation = geo.point(latitude: globalLatitude!, longitude: globalLongitude!);
+                await _firestore.collection('workers').add({
+                  'position': myLocation.data,
+                  'description': descController.text,
+                  'createdOn': DateFormat.yMMMMd().format(DateTime.now()),
+                  'createdAt': createdAt,
+                  'createdById': uid!,
+                  'category': widget.CollectionREf,
+                  'exp': int.tryParse(experienceController.text) ?? 0,
+                  'name': nameController.text,
+                  'age': int.tryParse(ageController.text) ?? 0,
+                  'mobileNumber': mobileNumberController.text,
+                  'whatsappNumber': whatsappNumberController.text,
+                });
+                Navigator.pop(context);
+              },
+              child: const Text("Create"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
