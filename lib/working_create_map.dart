@@ -152,7 +152,6 @@ class _WorkingCreateMapState extends State<WorkingCreateMap> {
   bool showErrors = false;
   String createdAt = "Unknown";
 
-  final nameController = TextEditingController();
   final descController = TextEditingController();
   final ageController = TextEditingController();
   final experienceController = TextEditingController();
@@ -188,7 +187,7 @@ class _WorkingCreateMapState extends State<WorkingCreateMap> {
   }
 
   bool validateFields() {
-    return !(nameController.text.isEmpty ||
+    return !(
         descController.text.isEmpty ||
         ageController.text.isEmpty ||
         experienceController.text.isEmpty ||
@@ -227,7 +226,6 @@ class _WorkingCreateMapState extends State<WorkingCreateMap> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            buildTextField(controller: nameController, label: 'Provider Name'),
             buildTextField(controller: descController, label: 'Description'),
             buildTextField(controller: ageController, label: 'Age', keyboardType: TextInputType.number, isNumber: true),
             buildTextField(controller: experienceController, label: 'Experience (years)', keyboardType: TextInputType.number, isNumber: true),
@@ -256,7 +254,6 @@ class _WorkingCreateMapState extends State<WorkingCreateMap> {
 
                 GeoFirePoint myLocation = geo.point(latitude: widget.latitudeCreate, longitude: widget.longitudeCreate);
                 await _firestore.collection('workers').add({
-                  'name': nameController.text,
                   'position': myLocation.data,
                   'description': descController.text,
                   'createdOn': DateFormat.yMMMMd().format(DateTime.now()),

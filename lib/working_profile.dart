@@ -18,10 +18,9 @@ class WorkingProfile extends StatefulWidget {
 
 class _WorkingProfileState extends State<WorkingProfile> {
   String? uid;
-  List<String> imageUrls = []; // To store uploaded image URLs
+  List<String> imageUrls = [];
   final ImagePicker _picker = ImagePicker();
 
-  // Function to get the current user's UID
   void getCurrentUserUid() {
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -31,7 +30,6 @@ class _WorkingProfileState extends State<WorkingProfile> {
     }
   }
 
-  // Fetch already uploaded images from Firestore
   Future<void> fetchUploadedImages() async {
     final images = await FirebaseFirestore.instance
         .collection('workers')
@@ -44,9 +42,7 @@ class _WorkingProfileState extends State<WorkingProfile> {
     });
   }
 
-  // Function to upload image to Firebase Storage and save the URL to Firestore
   Future<void> uploadImage() async {
-    // Pick an image
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image == null) return;
 
@@ -54,24 +50,20 @@ class _WorkingProfileState extends State<WorkingProfile> {
     String fileName = basename(file.path);
 
     try {
-      // Upload image to Firebase Storage
       Reference storageReference = FirebaseStorage.instance
           .ref()
           .child('worker_images/${widget.data.id}/$fileName');
       UploadTask uploadTask = storageReference.putFile(file);
       TaskSnapshot snapshot = await uploadTask;
 
-      // Get the image URL after uploading
       String imageUrl = await snapshot.ref.getDownloadURL();
 
-      // Save the URL to Firestore
       await FirebaseFirestore.instance
           .collection('workers')
           .doc(widget.data.id)
           .collection('images')
           .add({'url': imageUrl});
 
-      // Update the UI with the new image URL
       setState(() {
         imageUrls.add(imageUrl);
       });
@@ -80,7 +72,6 @@ class _WorkingProfileState extends State<WorkingProfile> {
     }
   }
 
-  // Function to launch the phone dialer
   void _launchPhone(String phoneNumber) async {
     final url = 'tel:$phoneNumber';
     if (await canLaunch(url)) {
@@ -88,15 +79,9 @@ class _WorkingProfileState extends State<WorkingProfile> {
     }
   }
 
-  // Function to launch WhatsApp
-  void _launchWhatsApp(String whatsappNumber) async {
-    final url = 'https://wa.me/+91$whatsappNumber';
-    if (await canLaunch(url)) {
-      await launch(url);
-    }
-  }
 
-  // Function to launch Google Maps with the user's location
+
+
   void _launchMap(double latitude, double longitude) async {
     final url = 'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude';
     if (await canLaunch(url)) {
@@ -108,12 +93,11 @@ class _WorkingProfileState extends State<WorkingProfile> {
   void initState() {
     super.initState();
     getCurrentUserUid();
-    fetchUploadedImages(); // Fetch any uploaded images
+    fetchUploadedImages();
   }
 
   @override
   Widget build(BuildContext context) {
-    final String name = widget.data['name'];
     final String mobileNumber = widget.data['mobileNumber'];
     final String whatsappNumber = widget.data['whatsappNumber'];
     final GeoPoint location = widget.data['position']['geopoint'];
@@ -121,53 +105,99 @@ class _WorkingProfileState extends State<WorkingProfile> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(name),
+        title: Text("Name"),
+        elevation: 0,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Contact $name", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-            SizedBox(height: 16),
-            if (mobileNumber.isNotEmpty) ...[
-              ElevatedButton.icon(
-                icon: Icon(Icons.phone),
-                label: Text("Call $mobileNumber"),
-                onPressed: () => _launchPhone(mobileNumber),
-              ),
-              SizedBox(height: 10),
-            ],
-            if (whatsappNumber.isNotEmpty) ...[
-              ElevatedButton.icon(
-                icon: Icon(Icons.whatshot),
-                label: Text("WhatsApp $whatsappNumber"),
-                onPressed: () => _launchWhatsApp(whatsappNumber),
-              ),
-              SizedBox(height: 10),
-            ],
-            ElevatedButton.icon(
-              icon: Icon(Icons.map),
-              label: Text("View on Map"),
-              onPressed: () => _launchMap(location.latitude, location.longitude),
-            ),
-            SizedBox(height: 30),
+      body: SingleChildScrollView(
+        child: Container(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Contact Information",
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.teal),
+                    ),
+                    SizedBox(height: 16),
+                    if (mobileNumber.isNotEmpty) ...[
+                      ElevatedButton.icon(
+                        icon: Icon(Icons.phone),
+                        label: Text("Call $mobileNumber"),
+                        style: ElevatedButton.styleFrom(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        onPressed: () => _launchPhone(mobileNumber),
+                      ),
+                      SizedBox(height: 10),
+                    ],
+                    if (whatsappNumber.isNotEmpty) ...[
+                      ElevatedButton.icon(
+                        icon: Icon(Icons.chat),
+                        label: Text("WhatsApp $whatsappNumber"),
+                        style: ElevatedButton.styleFrom(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        onPressed: () async {
+                          var whatsappUrl = "whatsapp://send?phone=+91$whatsappNumber&text=${Uri.encodeComponent("Hello")}";
 
-            // If the current user is the creator, show the option to upload photos
-            if (isCreator)
-              ElevatedButton.icon(
-                icon: Icon(Icons.upload),
-                label: Text("Upload Work Photos"),
-                onPressed: uploadImage,
+                          launch(whatsappUrl);
+                        },
+                      ),
+                      SizedBox(height: 10),
+                    ],
+                    ElevatedButton.icon(
+                      icon: Icon(Icons.map),
+                      label: Text("View on Map"),
+                      style: ElevatedButton.styleFrom(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      onPressed: () => _launchMap(location.latitude, location.longitude),
+                    ),
+                  ],
+                ),
               ),
-
-            // Display uploaded images
-            if (imageUrls.isNotEmpty) ...[
-              SizedBox(height: 20),
-              Text("Work Photos", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              SizedBox(height: 10),
-              Expanded(
-                child: GridView.builder(
+              if (isCreator)
+                Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      children: [
+                        Text(
+                          "Manage Work Photos",
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.teal),
+                        ),
+                        SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          icon: Icon(Icons.upload),
+                          label: Text("Upload Photos"),
+                          style: ElevatedButton.styleFrom(
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          onPressed: uploadImage,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              if (imageUrls.isNotEmpty) ...[
+                SizedBox(height: 20),
+                Text(
+                  "Work Photos",
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.teal),
+                ),
+                SizedBox(height: 10),
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 3,
                     crossAxisSpacing: 10,
@@ -175,12 +205,18 @@ class _WorkingProfileState extends State<WorkingProfile> {
                   ),
                   itemCount: imageUrls.length,
                   itemBuilder: (context, index) {
-                    return Image.network(imageUrls[index], fit: BoxFit.cover);
+                    return ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        imageUrls[index],
+                        fit: BoxFit.cover,
+                      ),
+                    );
                   },
                 ),
-              ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

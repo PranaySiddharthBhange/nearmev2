@@ -17,17 +17,15 @@ class WorkingCreateCurrent extends StatefulWidget {
 
 class _WorkingCreateCurrentState extends State<WorkingCreateCurrent> {
   String? uid;
-  String createdAt = "Curent Location";
+  String createdAt = "Current Location";
   bool isLoading = false;
   bool showErrors = false;
 
   final descController = TextEditingController();
-  final nameController = TextEditingController();
   final ageController = TextEditingController();
   final experienceController = TextEditingController();
   final mobileNumberController = TextEditingController();
   final whatsappNumberController = TextEditingController();
-  final emailController = TextEditingController();
   final photoUrlController = TextEditingController();
   final geo = GeoFlutterFire();
   final _firestore = FirebaseFirestore.instance;
@@ -81,7 +79,7 @@ class _WorkingCreateCurrentState extends State<WorkingCreateCurrent> {
   }
 
   bool validateFields() {
-    return !(nameController.text.isEmpty ||
+    return !(
         descController.text.isEmpty ||
         ageController.text.isEmpty ||
         experienceController.text.isEmpty ||
@@ -97,13 +95,11 @@ class _WorkingCreateCurrentState extends State<WorkingCreateCurrent> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            buildTextField(controller: nameController, label: 'Provider Name', isRequired: true),
             buildTextField(controller: descController, label: 'Description', isRequired: true),
             buildTextField(controller: ageController, label: 'Age', keyboardType: TextInputType.number, isNumber: true, isRequired: true),
             buildTextField(controller: experienceController, label: 'Experience (years)', keyboardType: TextInputType.number, isNumber: true, isRequired: true),
             buildTextField(controller: mobileNumberController, label: 'Mobile Number', keyboardType: TextInputType.phone, isRequired: true),
             buildTextField(controller: whatsappNumberController, label: 'WhatsApp Number', keyboardType: TextInputType.phone, isRequired: true),
-            // Display location
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 10.0),
               child: Text(
@@ -145,7 +141,6 @@ class _WorkingCreateCurrentState extends State<WorkingCreateCurrent> {
                   'createdById': uid!,
                   'category': widget.CollectionREf,
                   'exp': int.tryParse(experienceController.text) ?? 0,
-                  'name': nameController.text,
                   'age': int.tryParse(ageController.text) ?? 0,
                   'mobileNumber': mobileNumberController.text,
                   'whatsappNumber': whatsappNumberController.text,
