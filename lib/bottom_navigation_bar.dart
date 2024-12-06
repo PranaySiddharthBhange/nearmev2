@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nearme/rental_categories.dart';
 import 'package:nearme/service_screen.dart';
 import 'package:nearme/working_categories.dart';
 import 'home_screen.dart';
@@ -14,9 +15,9 @@ class _BottomNavBarState extends State<BottomNavBar> with SingleTickerProviderSt
   int currentIndex = 0;
   final List<Widget> pages = [
     HomeScreen(),
-    ServiceScreen(),
-    ServiceScreen(),
-    ServiceScreen(),
+    WorkingCategories(),
+    WorkingCategories(),
+    WorkingCategories(),
     WorkingCategories(),
   ];
 

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:nearme/working_services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -195,6 +196,23 @@ class _WorkingProfileState extends State<WorkingProfile> {
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.teal),
                 ),
                 SizedBox(height: 10),
+                ElevatedButton.icon(
+                  icon: Icon(Icons.rate_review),
+                  label: Text("Write a Review"),
+                  style: ElevatedButton.styleFrom(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ReviewPage(workerId: widget.data.id),
+                      ),
+                    );
+                  },
+                ),
+                SizedBox(height: 10),
+
                 GridView.builder(
                   shrinkWrap: true,
                   physics: NeverScrollableScrollPhysics(),
@@ -214,9 +232,201 @@ class _WorkingProfileState extends State<WorkingProfile> {
                     );
                   },
                 ),
+
+
               ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class ReviewPage extends StatefulWidget {
+  final String workerId;
+
+  const ReviewPage({Key? key, required this.workerId}) : super(key: key);
+
+  @override
+  _ReviewPageState createState() => _ReviewPageState();
+}
+
+class _ReviewPageState extends State<ReviewPage> {
+  int selectedRating = 0;
+  final TextEditingController reviewController = TextEditingController();
+  List<Map<String, dynamic>> reviews = [];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchReviews();
+  }
+
+  Future<void> fetchReviews() async {
+    final reviewSnapshot = await FirebaseFirestore.instance
+        .collection('workers')
+        .doc(widget.workerId)
+        .collection('reviews')
+        .orderBy('timestamp', descending: true)
+        .get();
+
+    setState(() {
+      reviews = reviewSnapshot.docs
+          .map((doc) => {
+        'name': doc['name'] ?? 'Anonymous',
+        'rating': doc['rating'],
+        'review': doc['review'],
+        'timestamp': doc['timestamp'],
+      })
+          .toList();
+    });
+  }
+
+  Future<void> submitReview(int rating, String reviewText) async {
+    if (rating == 0 || reviewText.isEmpty) {
+      ScaffoldMessenger.of(context as BuildContext).showSnackBar(
+        SnackBar(content: Text("Please provide a rating and review.")),
+      );
+      return;
+    }
+
+    final newReview = {
+      'name': 'User', // Replace with actual user name
+      'rating': rating,
+      'review': reviewText,
+      'timestamp': Timestamp.now(),
+    };
+
+    await FirebaseFirestore.instance
+        .collection('workers')
+        .doc(widget.workerId)
+        .collection('reviews')
+        .add(newReview);
+
+    setState(() {
+      reviews.insert(0, newReview);
+    });
+
+    reviewController.clear();
+    setState(() => selectedRating = 0);
+
+    ScaffoldMessenger.of(context as BuildContext).showSnackBar(
+      SnackBar(content: Text("Review submitted successfully!")),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Reviews"),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            // Review Input Section
+            Card(
+              elevation: 4,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Write a Review",
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (index) {
+                        return IconButton(
+                          icon: Icon(
+                            selectedRating > index ? Icons.star : Icons.star_border,
+                            color: Colors.amber,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              selectedRating = index + 1;
+                            });
+                          },
+                        );
+                      }),
+                    ),
+                    TextField(
+                      controller: reviewController,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        labelText: "Write your review",
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    ElevatedButton(
+                      onPressed: () =>
+                          submitReview(selectedRating, reviewController.text.trim()),
+                      child: Text("Submit Review"),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(height: 20),
+            // Reviews Display Section
+            Expanded(
+              child: reviews.isEmpty
+                  ? Center(child: Text("No reviews yet"))
+                  : ListView.builder(
+                itemCount: reviews.length,
+                itemBuilder: (context, index) {
+                  final review = reviews[index];
+                  return Card(
+                    elevation: 3,
+                    margin: EdgeInsets.symmetric(vertical: 8),
+                    child: ListTile(
+                      title: Row(
+                        children: [
+                          Text(
+                            review['name'],                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          Spacer(),
+                          Row(
+                            children: List.generate(5, (starIndex) {
+                              return Icon(
+                                starIndex < (review['rating'] ?? 0)
+                                    ? Icons.star
+                                    : Icons.star_border,
+                                color: Colors.amber,
+                                size: 18,
+                              );
+                            }),
+                          ),
+                        ],
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(height: 5),
+                          Text(review['review'] ?? ""),
+                          SizedBox(height: 5),
+                          Text(
+                            review['timestamp'] != null
+                                ? (review['timestamp'] as Timestamp)
+                                .toDate()
+                                .toString()
+                                : '',
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
